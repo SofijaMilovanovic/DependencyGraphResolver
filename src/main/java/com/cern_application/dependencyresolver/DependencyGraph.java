@@ -38,6 +38,12 @@ public class DependencyGraph {
       throw new DependencyGraphException("Node and dependencies cannot be null.");
     }
     graph.put(node, dependencies);
+
+    if (hasCycle()) {
+      graph.remove(node);
+      throw new DependencyGraphException(
+          "Adding dependencies for node '" + node + "' introduces a circular dependency.");
+    }
   }
 
   /**
@@ -54,5 +60,50 @@ public class DependencyGraph {
    */
   public Map<String, List<String>> getGraph() {
     return Collections.unmodifiableMap(graph);
+  }
+
+  /**
+   * Checks if the graph contains any circular dependencies.
+   *
+   * @return true if a circular dependency exists, false otherwise
+   */
+  private boolean hasCycle() {
+    Set<String> visited = new HashSet<>();
+    Set<String> stack = new HashSet<>();
+
+    for (String node : graph.keySet()) {
+      if (detectCycle(node, visited, stack)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Recursively detects a cycle starting from the given node.
+   *
+   * @param node the current node being checked
+   * @param visited tracks all nodes that have been fully processed
+   * @param stack tracks nodes currently in the recursion stack
+   * @return true if a cycle is detected, false otherwise
+   */
+  private boolean detectCycle(String node, Set<String> visited, Set<String> stack) {
+    if (stack.contains(node)) {
+      return true;
+    }
+    if (visited.contains(node)) {
+      return false;
+    }
+    visited.add(node);
+    stack.add(node);
+
+    for (String dependency : graph.getOrDefault(node, Collections.emptyList())) {
+      if (detectCycle(dependency, visited, stack)) {
+        return true;
+      }
+    }
+
+    stack.remove(node);
+    return false;
   }
 }
